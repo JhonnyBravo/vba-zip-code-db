@@ -1,0 +1,10 @@
+# Excel
+*.xlsx
+*.xlsm
+
+# Access
+*.accdb
+
+# Others
+*.csv
+*.zip
