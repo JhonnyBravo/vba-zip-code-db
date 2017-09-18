@@ -24,7 +24,7 @@ Private Sub Form_Load()
     Me.RecordsetType = 2
 End Sub
 
-Private Sub openUpdateData_Click()
+Private Sub btnOpenUpdateData_Click()
     DoCmd.OpenForm "frmUpdateData"
 End Sub
 
