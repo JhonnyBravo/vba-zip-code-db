@@ -4,7 +4,9 @@
 
 # Access
 *.accdb
+*.laccdb
 
 # Others
 *.csv
 *.zip
+development
