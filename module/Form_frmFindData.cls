@@ -10,6 +10,41 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
+Private Sub btnRemoveFilter_Click()
+    With Me
+        .Filter = ""
+        .FilterOn = False
+        .txtFindAddress = Null
+        .txtFindPhonetic = Null
+        .txtFindZipCode = Null
+    End With
+End Sub
+
 Private Sub Form_Load()
     Me.RecordsetType = 2
+End Sub
+
+Private Sub openUpdateData_Click()
+    DoCmd.OpenForm "frmUpdateData"
+End Sub
+
+Private Sub txtFindAddress_AfterUpdate()
+    With Me
+        .Filter = "住所 Like '*" & .txtFindAddress & "*'"
+        .FilterOn = True
+    End With
+End Sub
+
+Private Sub txtFindPhonetic_AfterUpdate()
+    With Me
+        .Filter = "[住所-カナ] Like '*" & .txtFindPhonetic & "*'"
+        .FilterOn = True
+    End With
+End Sub
+
+Private Sub txtFindZipCode_AfterUpdate()
+    With Me
+        .Filter = "郵便番号 = '" & Replace(.txtFindZipCode, "-", "") & "'"
+        .FilterOn = True
+    End With
 End Sub
