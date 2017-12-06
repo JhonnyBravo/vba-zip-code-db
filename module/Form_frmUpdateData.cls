@@ -12,7 +12,7 @@ Option Explicit
 
 Private Sub btnImportCSV_Click()
     Dim objDaoLib As New daoLib
-    Dim objXlLib As New xlLib
+    Dim objCsvLib As New csvLib
     
     Dim fileCollection As Collection
     Dim varFileName As Variant
@@ -32,6 +32,9 @@ Private Sub btnImportCSV_Click()
         MsgBox objDaoLib.message
         Exit Sub
     End If
+
+    Dim recordCollection As Collection
+    Dim varRecord As Variant
     
     For Each varFileName In fileCollection
         strFilePath = strDirPath & "\" & CStr(varFileName)
@@ -40,38 +43,13 @@ Private Sub btnImportCSV_Click()
         If LCase(CStr(varFileName)) Like "del_*.csv" Or _
             LCase(CStr(varFileName)) Like "add_*.csv" _
         Then
-            Dim recordCollection As New Collection
-            Dim varRecord As Variant
+            Set recordCollection = objCsvLib.getRecordCollection(strFilePath)
             
-            Dim lngFileNumber As Long
-            Dim strLine As String
+            If objCsvLib.code <> 0 Then
+                MsgBox objCsvLib.message
+                Exit Sub
+            End If
             
-            Dim strZipCode As String
-            Dim strPhonetic As String
-            Dim strAddress As String
-            Dim lngUpdateCode As Long
-            Dim lngReasonCode As Long
-            
-            lngFileNumber = FreeFile
-            
-            Open strFilePath For Input As #lngFileNumber
-            
-            Do Until EOF(lngFileNumber)
-                Line Input #lngFileNumber, strLine
-                
-                varRecord = Split(Replace(strLine, """", ""), ",")
-                
-                strZipCode = Format(CStr(varRecord(2)), "0000000")
-                strPhonetic = CStr(varRecord(3)) & CStr(varRecord(4)) & CStr(varRecord(5))
-                strAddress = CStr(varRecord(6)) & CStr(varRecord(7)) & CStr(varRecord(8))
-                lngUpdateCode = CLng(varRecord(13))
-                lngReasonCode = CLng(varRecord(14))
-                
-                recordCollection.Add Array(strZipCode, strPhonetic, strAddress, lngUpdateCode, lngReasonCode)
-            Loop
-            
-            Close #lngFileNumber
-                        
             For Each varRecord In recordCollection
                 objDaoLib.insertRecord "insertUpdateData", DCount("ID", "tblUpdateData") + 1, _
                     CStr(varRecord(0)), CStr(varRecord(1)), CStr(varRecord(2)), _
