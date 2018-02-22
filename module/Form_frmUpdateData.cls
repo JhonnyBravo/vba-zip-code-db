@@ -11,7 +11,6 @@ Option Compare Database
 Option Explicit
 
 Private Sub btnImportCSV_Click()
-    Dim objDaoLib As New daoLib
     Dim objCsvLib As New csvLib
     
     Dim fileCollection As Collection
@@ -26,12 +25,16 @@ Private Sub btnImportCSV_Click()
     Set fileCollection = getFileCollection(strDirPath)
     
     'tblUpdateData からレコードを削除
-    objDaoLib.invokeQuery ("deleteUpdateData")
-     
-    If objDaoLib.code <> 0 Then
-        MsgBox objDaoLib.message
-        Exit Sub
-    End If
+    Dim objQuery As New clsQuery
+    
+    With objQuery
+        .queryName = "deleteUpdateData"
+        .executeQuery
+        
+        If .code = 1 Then
+            Exit Sub
+        End If
+    End With
 
     Dim recordCollection As Collection
     Dim varRecord As Variant
@@ -43,54 +46,67 @@ Private Sub btnImportCSV_Click()
         If LCase(CStr(varFileName)) Like "del_*.csv" Or _
             LCase(CStr(varFileName)) Like "add_*.csv" _
         Then
-            Set recordCollection = objCsvLib.getRecordCollection(strFilePath)
+            Dim objCSV As New clsCSV
             
-            If objCsvLib.code <> 0 Then
-                MsgBox objCsvLib.message
-                Exit Sub
-            End If
-            
-            For Each varRecord In recordCollection
-                objDaoLib.insertRecord "insertUpdateData", DCount("ID", "tblUpdateData") + 1, _
-                    CStr(varRecord(0)), CStr(varRecord(1)), CStr(varRecord(2)), _
-                    CInt(varRecord(3)), CInt(varRecord(4)), Date
+            With objCSV
+                .path = strFilePath
+                .destination = "tblUpdateData"
+                .autoNumber = True
+                .fieldCollection = Array("郵便番号", 2)
+                .fieldCollection = Array("都道府県名-カナ", 3)
+                .fieldCollection = Array("市区町村名-カナ", 4)
+                .fieldCollection = Array("町域名-カナ", 5)
+                .fieldCollection = Array("都道府県名", 6)
+                .fieldCollection = Array("市区町村名", 7)
+                .fieldCollection = Array("町域名", 8)
+                .fieldCollection = Array("更新の表示", 13)
+                .fieldCollection = Array("変更理由", 14)
+                .importRecord
                 
-                If objDaoLib.code <> 0 Then
-                    MsgBox objDaoLib.message
+                If .code = 1 Then
                     Exit Sub
                 End If
-            Next
+            End With
         End If
     Next
     
     '削除対象レコードを tblAddressMaster から削除する。
-    objDaoLib.invokeQuery ("deleteAddressMaster")
-    
-    If objDaoLib.code <> 0 Then
-        MsgBox objDaoLib.message
-        Exit Sub
-    End If
+    With objQuery
+        .queryName = "deleteAddressMaster"
+        .executeQuery
+        
+        If .code = 1 Then
+            Exit Sub
+        End If
+    End With
     
     '追加対象レコードを tblAddressMaster へ登録する。
-    objDaoLib.invokeQuery ("insertAddressMaster")
-    
-    If objDaoLib.code <> 0 Then
-        MsgBox objDaoLib.message
-        Exit Sub
-    End If
+    With objQuery
+        .queryName = "insertAddressMaster"
+        .executeQuery
+        
+        If .code = 1 Then
+            Exit Sub
+        End If
+    End With
     
     MsgBox "CSV 取込が完了しました。"
 End Sub
 
 Private Sub btnSetFilePath_Click()
-    Dim strFilePath As String
-    strFilePath = getDirPath
+    Dim objPD As New clsPathDialog
+    Dim strPath As String
     
-    If strFilePath <> "" Then
-        Me.txtFilePath.Value = strFilePath
-    End If
+    With objPD
+        .pathType = "directory"
+        strPath = .getPath
+        
+        If .code = 2 Then
+            Me.txtFilePath = strPath
+        End If
+    End With
 End Sub
 
 Private Sub Form_Load()
-    Me.txtFilePath = Application.CurrentProject.Path
+    Me.txtFilePath = Application.CurrentProject.path
 End Sub
