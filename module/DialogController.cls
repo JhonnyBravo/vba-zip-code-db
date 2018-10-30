@@ -10,14 +10,23 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Private propCode As Long
+Implements IStatus
+Private objSC As New StatusController
 
-'@return code メソッド実行直後の終了コードを返す。
-'   0: エラーもなく、リソースの変更もなく終了した状態を表す。
-'   1: エラー終了した状態を表す。
-'   2: リソースを変更して正常終了した状態を表す。
-Public Property Get code() As Long
-    code = propCode
+Private Property Let IStatus_code(lngCode As Long)
+    objSC.IStatus_code = lngCode
+End Property
+
+Public Property Get IStatus_code() As Long
+    IStatus_code = objSC.IStatus_code
+End Property
+
+Private Property Let IStatus_message(strMessage As String)
+    objSC.IStatus_message = strMessage
+End Property
+
+Private Property Get IStatus_message() As String
+    IStatus_message = objSC.IStatus_message
 End Property
 
 'ファイルピッカーを起動し、選択した CSV ファイルのパスを取得して返す。
@@ -28,9 +37,9 @@ Public Function getCsvPath() As String
     Dim strPath As String
     
     With objGFP
-        .filterCollection.Add Array("CSV", "*.csv")
+        .IExtensionFilters_addDefinition "CSV", "*.csv"
         strPath = .runCommand
-        propCode = .code
+        IStatus_code = .IStatus_code
     End With
     
     getCsvPath = strPath
@@ -44,9 +53,9 @@ Public Function getExcelPath() As String
     Dim strPath As String
     
     With objGFP
-        .filterCollection.Add Array("Excel", "*.xls;*.xlsx;*.xlsm")
+        .IExtensionFilters_addDefinition "Excel", "*.xls;*.xlsx;*.xlsm"
         strPath = .runCommand
-        propCode = .code
+        IStatus_code = .IStatus_code
     End With
     
     getExcelPath = strPath
@@ -61,7 +70,7 @@ Public Function getDirectoryPath() As String
     
     With objGDP
         strPath = .runCommand
-        propCode = .code
+        IStatus_code = .IStatus_code
     End With
     
     getDirectoryPath = strPath
