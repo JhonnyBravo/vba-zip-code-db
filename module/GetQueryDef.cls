@@ -10,15 +10,23 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Private propCode As Long
+Implements IStatus
 Private objSC As New StatusController
 
-'メソッド実行直後の終了コードを返す。
-'   0: エラーもなく、リソースの変更もなく終了した状態を表す。
-'   1: エラー終了した状態を表す。
-'   2: リソースを変更し、正常終了した状態を表す。
-Public Property Get code() As Long
-    code = propCode
+Private Property Let IStatus_code(lngCode As Long)
+    objSC.IStatus_code = lngCode
+End Property
+
+Public Property Get IStatus_code() As Long
+    IStatus_code = objSC.IStatus_code
+End Property
+
+Private Property Let IStatus_message(strMessage As String)
+    objSC.IStatus_message = strMessage
+End Property
+
+Private Property Get IStatus_message() As String
+    IStatus_message = objSC.IStatus_message
 End Property
 
 '@param strName QueryDef オブジェクトとして取得するクエリの名前を指定する。
@@ -36,19 +44,11 @@ Public Function runCommand(strName As String) As DAO.QueryDef
     Debug.Print strName & " を実行します。"
     
     Set objQD = objDB.QueryDefs(strName)
-    
-    With objSC
-        .code = 2
-        .message = ""
-        propCode = .code
-    End With
+    IStatus_code = 2
     
     Set runCommand = objQD
     Exit Function
 errExit:
-    With objSC
-        .message = "エラーが発生しました。 " & Err.Description
-        .errorTerminate
-        propCode = .code
-    End With
+    IStatus_message = "エラーが発生しました。 " & Err.Description
+    objSC.errorTerminate
 End Function
