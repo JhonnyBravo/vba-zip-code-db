@@ -10,15 +10,23 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Private propCode As Long
+Implements IStatus
 Private objSC As New StatusController
 
-'@return code メソッド実行直後の終了コードを返す。
-'   0: エラーもなく、リソースの変更もなく終了した状態を表す。
-'   1: エラー終了した状態を表す。
-'   2: リソースを変更し、正常終了した状態を表す。
-Public Property Get code() As Long
-    code = propCode
+Private Property Let IStatus_code(lngCode As Long)
+    objSC.IStatus_code = lngCode
+End Property
+
+Public Property Get IStatus_code() As Long
+    IStatus_code = objSC.IStatus_code
+End Property
+
+Private Property Let IStatus_message(strMessage As String)
+    objSC.IStatus_message = strMessage
+End Property
+
+Private Property Get IStatus_message() As String
+    IStatus_message = objSC.IStatus_message
 End Property
 
 '@param strPath TextStream 取得対象とするファイルのパスを指定する。
@@ -31,23 +39,14 @@ Public Function runCommand(strPath As String) As TextStream
     
     With objFSO
         If .FileExists(strPath) = False Then
-            With objSC
-                .message = strPath & " が見つかりません。"
-                .errorTerminate
-                propCode = .code
-            End With
-            
+            IStatus_message = strPath & " が見つかりません。"
+            objSC.errorTerminate
             Exit Function
         Else
             Debug.Print strPath & " を開きます。"
             
             Set objTS = .GetFile(strPath).OpenAsTextStream(ForReading)
-            
-            With objSC
-                .code = 2
-                .message = ""
-                propCode = .code
-            End With
+            IStatus_code = 2
         End If
         
         Set runCommand = objTS
