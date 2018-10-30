@@ -25,7 +25,7 @@ Private Sub btnImportCSV_Click()
     With objGFC
         Set objFiles = .runCommand(strPath)
         
-        If .code = 1 Then
+        If .IStatus_code = 1 Then
             Exit Sub
         End If
     End With
@@ -36,7 +36,7 @@ Private Sub btnImportCSV_Click()
     With objT01Ctrl
         .deleteRecord
         
-        If .code = 1 Then
+        If .IStatus_code = 1 Then
             Exit Sub
         End If
     End With
@@ -49,7 +49,7 @@ Private Sub btnImportCSV_Click()
             With objT01Ctrl
                 .importRecord objFile.path
                 
-                If .code = 1 Then
+                If .IStatus_code = 1 Then
                     Exit Sub
                 End If
             End With
@@ -65,7 +65,7 @@ Private Sub btnImportCSV_Click()
     With objGQD
         Set objQD = .runCommand("deleteAddressMaster")
         
-        If .code = 1 Then
+        If .IStatus_code = 1 Then
             Exit Sub
         End If
 
@@ -73,7 +73,7 @@ Private Sub btnImportCSV_Click()
         
         Set objQD = .runCommand("insertAddressMaster")
         
-        If .code = 1 Then
+        If .IStatus_code = 1 Then
             Exit Sub
         End If
 
@@ -96,7 +96,7 @@ Private Sub btnSetFilePath_Click()
     With objDC
         strPath = .getDirectoryPath
         
-        If .code = 2 Then
+        If .IStatus_code = 2 Then
             Me.txtFilePath = strPath
         End If
     End With
