@@ -10,15 +10,23 @@ Attribute VB_Exposed = False
 Option Explicit
 Option Compare Database
 
+Implements IStatus
 Private objSC As New StatusController
-Private propCode As Long
 
-'@return code メソッド実行直後の終了コードを返す。
-'   0: エラーもなく、リソースの変更もなく終了した状態を表す。
-'   1: エラー終了した状態を表す。
-'   2: リソースを変更し、正常終了した状態を表す。
-Public Property Get code() As Long
-    code = propCode
+Private Property Let IStatus_code(lngCode As Long)
+    objSC.IStatus_code = lngCode
+End Property
+
+Public Property Get IStatus_code() As Long
+    IStatus_code = objSC.IStatus_code
+End Property
+
+Private Property Let IStatus_message(strMessage As String)
+    objSC.IStatus_message = strMessage
+End Property
+
+Private Property Get IStatus_message() As String
+    IStatus_message = objSC.IStatus_message
 End Property
 
 'ファイルピッカーを起動し、選択したディレクトリのパスを取得して返す。
@@ -26,7 +34,6 @@ End Property
 '@return path 選択したディレクトリのパスを返す。
 Public Function runCommand() As String
     Dim strPath As String
-    strPath = ""
     
     objSC.initStatus
     
@@ -39,17 +46,9 @@ Public Function runCommand() As String
         
         If .Show = -1 Then
             strPath = .SelectedItems(1)
-            
-            With objSC
-                .code = 2
-                .message = ""
-            End With
-        Else
-            strPath = ""
-            objSC.initStatus
+            IStatus_code = 2
         End If
     End With
     
-    propCode = objSC.code
     runCommand = strPath
 End Function
