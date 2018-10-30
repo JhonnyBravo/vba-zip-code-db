@@ -10,15 +10,23 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Private propCode As Long
+Implements IStatus
 Private objSC As New StatusController
 
-'@return code メソッド実行直後の終了コードを返す。
-'   0: エラーもなく、リソースの変更もなく終了した状態を表す。
-'   1: エラー終了した状態を表す。
-'   2: リソースを変更し、正常終了した状態を表す。
-Public Property Get code() As Long
-    code = propCode
+Private Property Let IStatus_code(lngCode As Long)
+    objSC.IStatus_code = lngCode
+End Property
+
+Public Property Get IStatus_code() As Long
+    IStatus_code = objSC.IStatus_code
+End Property
+
+Private Property Let IStatus_message(strMessage As String)
+    objSC.IStatus_message = strMessage
+End Property
+
+Private Property Get IStatus_message() As String
+    IStatus_message = objSC.IStatus_message
 End Property
 
 'tblUpdateData からレコードを全件削除する。
@@ -30,10 +38,10 @@ Public Sub deleteRecord()
     
     With objGQD
         Set objQD = .runCommand("deleteUpdateData")
-        propCode = .code
+        IStatus_code = .IStatus_code
     End With
     
-    If code = 1 Then
+    If IStatus_code = 1 Then
         Exit Sub
     End If
     
@@ -42,11 +50,8 @@ Public Sub deleteRecord()
     objQD.Execute
     Exit Sub
 errExit:
-    With objSC
-        .message = "エラーが発生しました。 " & Err.Description
-        .errorTerminate
-        propCode = .code
-    End With
+    IStatus_message = "エラーが発生しました。 " & Err.Description
+    objSC.errorTerminate
 End Sub
 
 'tblUpdateData へレコードを登録する。
@@ -61,10 +66,10 @@ Public Sub importRecord(strPath As String)
     
     With objGTS
         Set objTS = .runCommand(strPath)
-        propCode = .code
+        IStatus_code = .IStatus_code
     End With
     
-    If code = 1 Then
+    If IStatus_code = 1 Then
         Exit Sub
     End If
     
@@ -73,10 +78,10 @@ Public Sub importRecord(strPath As String)
     
     With objGR
         Set objRS = .runCommand("tblUpdateData")
-        propCode = .code
+        IStatus_code = .IStatus_code
     End With
     
-    If code = 1 Then
+    If IStatus_code = 1 Then
         Exit Sub
     End If
     
@@ -151,13 +156,10 @@ Public Sub importRecord(strPath As String)
     objRS.Close
     Set objRS = Nothing
     
-    propCode = 2
+    IStatus_code = 2
     Exit Sub
 errExit:
-    With objSC
-        .message = "エラーが発生しました。 " & Err.Description
-        .errorTerminate
-        Debug.Print lngLineNumber & " 行目: " & strLine
-        propCode = .code
-    End With
+    IStatus_message = "エラーが発生しました。 " & Err.Description
+    objSC.errorTerminate
+    Debug.Print lngLineNumber & " 行目: " & strLine
 End Sub
