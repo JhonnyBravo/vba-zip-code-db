@@ -10,41 +10,34 @@ Attribute VB_Exposed = False
 Option Explicit
 Option Compare Database
 
-Private propCode As Long
-Private propMessage As String
+Implements IStatus
+Private objStatus As New Status
 
-'@return code メソッド終了直後の終了コードを返す。
-Public Property Get code() As Long
-    code = propCode
+Public Property Let IStatus_code(lngCode As Long)
+    objStatus.code = lngCode
 End Property
 
-'@param lngCode メソッド終了直後の終了コードを設定する。
-'   0: 異常もリソースの変更もなく終了した状態を表す。
-'   1: 異常終了した状態を表す。
-'   2: リソースの変更に成功した状態を表す。
-Public Property Let code(lngCode As Long)
-    propCode = lngCode
+Public Property Get IStatus_code() As Long
+    IStatus_code = objStatus.code
 End Property
 
-'@return message エラー発生時に出力するメッセージを返す。
-Public Property Get message() As String
-    message = propMessage
+Public Property Let IStatus_message(strMessage As String)
+    objStatus.message = strMessage
 End Property
 
-'@param strMessage エラー発生時に出力するメッセージを設定する。
-Public Property Let message(strMessage As String)
-    propMessage = strMessage
+Public Property Get IStatus_message() As String
+    IStatus_message = objStatus.message
 End Property
 
 '終了コードとエラーメッセージを初期化する。
 Public Sub initStatus()
-    code = 0
-    message = ""
+    IStatus_code = 0
+    IStatus_message = ""
 End Sub
 
 '終了コードを 1 に設定し、エラーメッセージを出力する。
 Public Sub errorTerminate()
-    code = 1
-    Debug.Print message
-    MsgBox message
+    IStatus_code = 1
+    Debug.Print IStatus_message
+    MsgBox IStatus_message
 End Sub
