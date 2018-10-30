@@ -10,61 +10,62 @@ Attribute VB_Exposed = False
 Option Explicit
 Option Compare Database
 
+Implements IStatus
+Implements IExtensionFilters
+
 Private objSC As New StatusController
-Private propFilterCollection As Collection
-Private propCode As Long
+Private objEF As New ExtensionFilters
 
-'@return code メソッド実行直後の終了コードを返す。
-'   0: エラーもなく、リソースの変更もなく終了した状態を表す。
-'   1: エラー終了した状態を表す。
-'   2: リソースを変更し、正常終了した状態を表す。
-Public Property Get code() As Long
-    code = propCode
+Private Property Let IStatus_code(lngCode As Long)
+    objSC.IStatus_code = lngCode
 End Property
 
-'@return ファイルピッカーの拡張子フィルターへ渡す配列を格納したコレクションを返す。
-'   例: Array("Images", "*.gif; *.jpg; *.jpeg")
-Public Property Get filterCollection() As Collection
-    Set filterCollection = propFilterCollection
+Public Property Get IStatus_code() As Long
+    IStatus_code = objSC.IStatus_code
 End Property
 
-Private Sub Class_Initialize()
-    Set propFilterCollection = New Collection
+Private Property Let IStatus_message(strMessage As String)
+    IStatus_message = strMessage
+End Property
+
+Private Property Get IStatus_message() As String
+    IStatus_message = objSC.IStatus_message
+End Property
+
+Public Sub IExtensionFilters_addDefinition(strLabel As String, strExtension As String)
+    objEF.addDefinition strLabel, strExtension
+End Sub
+
+Private Function IExtensionFilters_getCollection() As Collection
+    Set IExtensionFilters_getCollection = objEF.getCollection
+End Function
+
+Public Sub IExtensionFilters_initCollection()
+    objEF.initCollection
 End Sub
 
 'ファイルピッカーを起動し、選択したファイルのパスを取得して返す。
 '
 '@return path 選択したファイルのパスを返す。
 Public Function runCommand() As String
-    Dim strPath As String
-    strPath = ""
-    
     objSC.initStatus
     
     Dim objFD As FileDialog
     Set objFD = Application.FileDialog(msoFileDialogFilePicker)
+    objFD.Filters.Clear
     
-    With objFD
-        .Filters.Clear
-    End With
-    
+    Dim objFilterCollection As Collection
     Dim varFilter As Variant
     
-    If filterCollection.Count > 0 Then
-        For Each varFilter In filterCollection
-            If UBound(varFilter) <> 1 Then
-                With objSC
-                    .message = "拡張子フィルターの定義が不正です。"
-                    .errorTerminate
-                    propCode = .code
-                End With
-                
-                Exit Function
-            End If
-            
+    Set objFilterCollection = IExtensionFilters_getCollection
+    
+    If objFilterCollection.Count > 0 Then
+        For Each varFilter In objFilterCollection
             objFD.Filters.Add varFilter(0), varFilter(1)
         Next
     End If
+    
+    Dim strPath As String
     
     With objFD
         .InitialFileName = Application.CurrentProject.path
@@ -72,17 +73,9 @@ Public Function runCommand() As String
         
         If .Show = -1 Then
             strPath = .SelectedItems(1)
-            
-            With objSC
-                .code = 2
-                .message = ""
-            End With
-        Else
-            strPath = ""
-            objSC.initStatus
+            IStatus_code = 2
         End If
     End With
     
-    propCode = objSC.code
     runCommand = strPath
 End Function
