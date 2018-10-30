@@ -8,7 +8,7 @@ Public Sub DCTest1()
     
     With objDC
         Debug.Print "Path: " & .getCsvPath
-        Debug.Print "Code: " & .code
+        Debug.Print "Code: " & .IStatus_code
     End With
 End Sub
 
@@ -18,7 +18,7 @@ Public Sub DCTest2()
     
     With objDC
         Debug.Print "Path: " & .getExcelPath
-        Debug.Print "Code: " & .code
+        Debug.Print "Code: " & .IStatus_code
     End With
 End Sub
 
@@ -28,6 +28,6 @@ Public Sub DCTest3()
     
     With objDC
         Debug.Print "Path: " & .getDirectoryPath
-        Debug.Print "Code: " & .code
+        Debug.Print "Code: " & .IStatus_code
     End With
 End Sub
