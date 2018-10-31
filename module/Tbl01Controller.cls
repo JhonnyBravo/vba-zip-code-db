@@ -12,6 +12,7 @@ Option Explicit
 
 Implements IStatus
 Private objSC As New StatusController
+Private objED As New EntityDefinition
 
 Private Property Let IStatus_code(lngCode As Long)
     objSC.IStatus_code = lngCode
@@ -28,6 +29,21 @@ End Property
 Private Property Get IStatus_message() As String
     IStatus_message = objSC.IStatus_message
 End Property
+
+Private Sub Class_Initialize()
+    With objED
+        .entity = "tblUpdateData"
+        .addFieldDefinition 2, "郵便番号"
+        .addFieldDefinition 3, "都道府県名-カナ"
+        .addFieldDefinition 4, "市区町村名-カナ"
+        .addFieldDefinition 5, "町域名-カナ"
+        .addFieldDefinition 6, "都道府県名"
+        .addFieldDefinition 7, "市区町村名"
+        .addFieldDefinition 8, "町域名"
+        .addFieldDefinition 13, "更新の表示"
+        .addFieldDefinition 14, "変更理由"
+    End With
+End Sub
 
 'tblUpdateData からレコードを全件削除する。
 Public Sub deleteRecord()
@@ -77,7 +93,7 @@ Public Sub importRecord(strPath As String)
     Dim objRS As DAO.Recordset
     
     With objGR
-        Set objRS = .runCommand("tblUpdateData")
+        Set objRS = .runCommand(objED.entity)
         IStatus_code = .IStatus_code
     End With
     
@@ -87,16 +103,22 @@ Public Sub importRecord(strPath As String)
     
     On Error GoTo errExit
     
-    Dim lngLineNumber As Long
-    Dim strLine As String
     Dim varRecordset As Variant
     Dim lngID As Long
     
     If objRS.RecordCount = 0 Then
         lngID = 0
     Else
-        lngID = DMax("ID", "tblUpdateData")
+        lngID = DMax("ID", objED.entity)
     End If
+    
+    Dim objFieldCollection As Collection
+    Dim varField As Variant
+    
+    Set objFieldCollection = objED.getCollection
+    
+    Dim lngLineNumber As Long
+    Dim strLine As String
     
     With objTS
         Do Until .AtEndOfStream
@@ -111,41 +133,11 @@ Public Sub importRecord(strPath As String)
                 
                 .Fields("ID").Value = lngID
                 
-                If varRecordset(2) <> "" Then
-                    .Fields("郵便番号").Value = varRecordset(2)
-                End If
-                
-                If varRecordset(3) <> "" Then
-                    .Fields("都道府県名-カナ").Value = varRecordset(3)
-                End If
-                
-                If varRecordset(4) <> "" Then
-                    .Fields("市区町村名-カナ").Value = varRecordset(4)
-                End If
-                
-                If varRecordset(5) <> "" Then
-                    .Fields("町域名-カナ").Value = varRecordset(5)
-                End If
-                
-                If varRecordset(6) <> "" Then
-                    .Fields("都道府県名").Value = varRecordset(6)
-                End If
-                
-                If varRecordset(7) <> "" Then
-                    .Fields("市区町村名").Value = varRecordset(7)
-                End If
-                
-                If varRecordset(8) <> "" Then
-                    .Fields("町域名").Value = varRecordset(8)
-                End If
-                
-                If varRecordset(13) <> "" Then
-                    .Fields("更新の表示").Value = varRecordset(13)
-                End If
-                
-                If varRecordset(14) <> "" Then
-                    .Fields("変更理由").Value = varRecordset(14)
-                End If
+                For Each varField In objFieldCollection
+                    If varRecordset(varField(0)) <> "" Then
+                        .Fields(varField(1)).Value = varRecordset(varField(0))
+                    End If
+                Next
                 
                 .Update
             End With
