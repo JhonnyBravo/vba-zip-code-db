@@ -1,4 +1,4 @@
-﻿VERSION 1.0 CLASS
+VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -10,45 +10,55 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements IStatus
-Private objSC As New StatusController
+Implements ICommand
+Private objSC As IStatus
+Private propConnection As DAO.Database
+Private propEntityName As String
+Private propRecordset As DAO.recordset
 
-Private Property Let IStatus_code(lngCode As Long)
-    objSC.IStatus_code = lngCode
+'Properties
+
+'@see ICommand#code
+Public Property Get ICommand_code() As Long
+    ICommand_code = objSC.code
 End Property
 
-Public Property Get IStatus_code() As Long
-    IStatus_code = objSC.IStatus_code
+'@return recordset 生成された Recordset を返す。
+Public Property Get recordset() As DAO.recordset
+    Set recordset = propRecordset
 End Property
 
-Private Property Let IStatus_message(strMessage As String)
-    objSC.IStatus_message = strMessage
-End Property
+'Methods
 
-Private Property Get IStatus_message() As String
-    IStatus_message = objSC.IStatus_message
-End Property
+Private Sub Class_Initialize()
+    Set objSC = New Status
+End Sub
 
-'@param strName レコードセット取得対象とするテーブル/クエリの名前を指定する。
-'@return Recordset テーブル/クエリのレコードセットを返す。
-Public Function runCommand(strName As String) As DAO.Recordset
+Private Sub Class_Terminate()
+    Set propRecordset = Nothing
+End Sub
+
+'@param connection 操作対象とする DataBase を指定する。
+'@param entityName Recordset として取得するテーブルオブジェクトまたはクエリオブジェクトの名前を指定する。
+Public Sub init(ByRef connection As DAO.Database, entityName As String)
+    Set propConnection = connection
+    propEntityName = entityName
+End Sub
+
+'Recordset を生成する。
+Public Sub ICommand_run()
     objSC.initStatus
-    
-    Dim objDB As DAO.Database
-    Dim objRS As DAO.Recordset
-    
-    Set objDB = Application.CurrentDb
     
     On Error GoTo errExit
     
-    Debug.Print strName & " を開きます。"
+    Debug.Print propEntityName & " を開いています......"
+    Set propRecordset = propConnection.OpenRecordset(propEntityName)
     
-    Set objRS = objDB.openRecordset(strName)
-    IStatus_code = 2
-    
-    Set runCommand = objRS
-    Exit Function
+    objSC.code = 2
+    Exit Sub
 errExit:
-    IStatus_message = "エラーが発生しました。 " & Err.Description
-    objSC.errorTerminate
-End Function
+    With objSC
+        .message = "エラーが発生しました。 " & Err.description
+        .errorTerminate
+    End With
+End Sub
