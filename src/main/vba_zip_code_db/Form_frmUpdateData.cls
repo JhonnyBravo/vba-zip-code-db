@@ -1,4 +1,4 @@
-﻿VERSION 1.0 CLASS
+VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -18,65 +18,95 @@ Private Sub btnImportCSV_Click()
     
     strPath = Me.txtFilePath
     
-    Dim objGFC As New GetFileCollection
-    Dim objFiles As Files
+    Dim objGF As New GetFiles
+    Dim objFSO As New FileSystemObject
+    
+    Dim objFiles As files
     Dim objFile As File
     
-    With objGFC
-        Set objFiles = .runCommand(strPath)
+    With objGF
+        .init objFSO.GetFolder(strPath)
+        .ICommand_run
         
-        If .IStatus_code = 1 Then
+        If .ICommand_code = 1 Then
             Exit Sub
         End If
+        
+        Set objFiles = .files
     End With
-
-    'tblUpdateData 初期化処理
-    Dim objT01Ctrl As New Tbl01Controller
     
-    With objT01Ctrl
-        .deleteRecord
+    'tblUpdateData 初期化処理
+    Dim objDAOC As New DaoController
+    Dim objQD As DAO.QueryDef
+    
+    With objDAOC
+        Set objQD = .getQuery("deleteUpdateData")
         
-        If .IStatus_code = 1 Then
+        If .ICommand_code = 1 Then
             Exit Sub
         End If
     End With
+    
+    objQD.Execute
+    
+    Dim objGTS As New GetTextStream
+    Dim objTS As TextStream
+    Dim objRS As DAO.recordset
+    
+    Dim objICSV As New ImportCsv
     
     '更新ファイルインポート処理
     For Each objFile In objFiles
         If LCase(objFile.path) Like "*del_*.csv" Or _
             LCase(objFile.path) Like "*add_*.csv" _
         Then
-            With objT01Ctrl
-                .importRecord objFile.path
+            With objGTS
+                .init objFile, "read"
+                .ICommand_run
                 
-                If .IStatus_code = 1 Then
+                If .ICommand_code = 1 Then
+                    Exit Sub
+                End If
+                
+                Set objTS = .stream
+            End With
+            
+            With objDAOC
+                Set objRS = .getRecordset("tblUpdateData")
+                
+                If .ICommand_code = 1 Then
                     Exit Sub
                 End If
             End With
+            
+            With objICSV
+                .init objRS, objTS
+                .ICommand_run
+            End With
+            
+            objTS.Close
+            objRS.Close
         End If
     Next
     
     'tblAddressMaster 更新処理
     On Error GoTo errExit
     
-    Dim objGQD As New GetQueryDef
-    Dim objQD As DAO.QueryDef
-    
-    With objGQD
-        Set objQD = .runCommand("deleteAddressMaster")
+    With objDAOC
+        Set objQD = .getQuery("deleteAddressMaster")
         
-        If .IStatus_code = 1 Then
+        If .ICommand_code = 1 Then
             Exit Sub
         End If
-
+        
         objQD.Execute
         
-        Set objQD = .runCommand("insertAddressMaster")
+        Set objQD = .getQuery("insertAddressMaster")
         
-        If .IStatus_code = 1 Then
+        If .ICommand_code = 1 Then
             Exit Sub
         End If
-
+        
         objQD.Execute
     End With
     
@@ -85,8 +115,8 @@ Private Sub btnImportCSV_Click()
     Exit Sub
     
 errExit:
-    Debug.Print "エラーが発生しました。 " & Err.Description
-    MsgBox "エラーが発生しました。 " & Err.Description
+    Debug.Print "エラーが発生しました。 " & Err.description
+    MsgBox "エラーが発生しました。 " & Err.description
 End Sub
 
 Private Sub btnSetFilePath_Click()
@@ -96,7 +126,7 @@ Private Sub btnSetFilePath_Click()
     With objDC
         strPath = .getDirectoryPath
         
-        If .IStatus_code = 2 Then
+        If .ICommand_code = 2 Then
             Me.txtFilePath = strPath
         End If
     End With
