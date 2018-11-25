@@ -1,4 +1,4 @@
-﻿VERSION 1.0 CLASS
+VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -10,45 +10,78 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements IStatus
-Private objSC As New StatusController
+Implements ICommand
 
-Private Property Let IStatus_code(lngCode As Long)
-    objSC.IStatus_code = lngCode
+Private objSC As IStatus
+Private objFSO As FileSystemObject
+
+Private propFile As File
+Private propStream As TextStream
+Private propMode As String
+
+'Properties
+
+'@see ICommand#code
+Public Property Get ICommand_code() As Long
+    ICommand_code = objSC.code
 End Property
 
-Public Property Get IStatus_code() As Long
-    IStatus_code = objSC.IStatus_code
+'@return stream 取得した TextStream を返す。
+Public Property Get stream() As TextStream
+    Set stream = propStream
 End Property
 
-Private Property Let IStatus_message(strMessage As String)
-    objSC.IStatus_message = strMessage
-End Property
+'Methods
 
-Private Property Get IStatus_message() As String
-    IStatus_message = objSC.IStatus_message
-End Property
+Private Sub Class_Initialize()
+    Set objSC = New Status
+    Set objFSO = New FileSystemObject
+End Sub
 
-'@param strPath TextStream 取得対象とするファイルのパスを指定する。
-'@return TextStream TextStream を取得して返す。
-Public Function runCommand(strPath As String) As TextStream
+Private Sub Class_Terminate()
+    propStream.Close
+End Sub
+
+'@param objFile 操作対象とする File を指定する。
+'@param mode TextStream のモードを指定する。
+'   read: 読取専用で開く。
+'   write: 上書きモードで開く。
+'   append: 追記モードで開く。
+Public Sub init(ByRef objFile As File, mode As String)
+    Set propFile = objFile
+    propMode = mode
+End Sub
+
+'TextStream を取得する。
+Public Sub ICommand_run()
     objSC.initStatus
     
-    Dim objFSO As New FileSystemObject
-    Dim objTS As TextStream
+    If objFSO.FileExists(propFile.path) = False Then
+        With objSC
+            .message = propFile.path & " が見つかりません。"
+            .errorTerminate
+            Exit Sub
+        End With
+    End If
     
-    With objFSO
-        If .FileExists(strPath) = False Then
-            IStatus_message = strPath & " が見つかりません。"
-            objSC.errorTerminate
-            Exit Function
-        Else
-            Debug.Print strPath & " を開きます。"
+    Debug.Print propFile.path & " を開いています......"
+    
+    Select Case propMode
+        Case "read"
+            Set propStream = propFile.OpenAsTextStream(ForReading)
+            objSC.code = 2
+        Case "write"
+            Set propStream = propFile.OpenAsTextStream(ForWriting)
+            objSC.code = 2
+        Case "append"
+            Set propStream = propFile.OpenAsTextStream(ForAppending)
+            objSC.code = 2
+        Case Else
+            Set propStream = Nothing
             
-            Set objTS = .GetFile(strPath).OpenAsTextStream(ForReading)
-            IStatus_code = 2
-        End If
-        
-        Set runCommand = objTS
-    End With
-End Function
+            With objSC
+                .message = "mode の値が不正です。"
+                .errorTerminate
+            End With
+    End Select
+End Sub
