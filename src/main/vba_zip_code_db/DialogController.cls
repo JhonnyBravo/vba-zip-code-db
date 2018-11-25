@@ -1,4 +1,4 @@
-﻿VERSION 1.0 CLASS
+VERSION 1.0 CLASS
 BEGIN
   MultiUse = -1  'True
 END
@@ -10,68 +10,127 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements IStatus
-Private objSC As New StatusController
+Implements ICommand
 
-Private Property Let IStatus_code(lngCode As Long)
-    objSC.IStatus_code = lngCode
+Private objSC As IStatus
+Private objGD As GetDialog
+Private objOD As OpenDialog
+
+'Properties
+
+'@see ICommand#code
+Public Property Get ICommand_code() As Long
+    ICommand_code = objSC.code
 End Property
 
-Public Property Get IStatus_code() As Long
-    IStatus_code = objSC.IStatus_code
-End Property
+'Methods
 
-Private Property Let IStatus_message(strMessage As String)
-    objSC.IStatus_message = strMessage
-End Property
+Private Sub Class_Initialize()
+    Set objSC = New Status
+    Set objGD = New GetDialog
+    Set objOD = New OpenDialog
+End Sub
 
-Private Property Get IStatus_message() As String
-    IStatus_message = objSC.IStatus_message
-End Property
-
-'ファイルピッカーを起動し、選択した CSV ファイルのパスを取得して返す。
+'ファイルピッカーダイアログを起動し、選択した CSV ファイルのパスを取得して返す。
 '
 '@return path 選択したファイルのパスを返す。
 Public Function getCsvPath() As String
-    Dim objGFP As New GetFilePath
     Dim strPath As String
+    Dim objDialog As FileDialog
     
-    With objGFP
-        .IExtensionFilters_addDefinition "CSV", "*.csv"
-        strPath = .runCommand
-        IStatus_code = .IStatus_code
+    With objGD
+        .init "file"
+        .ICommand_run
+        
+        objSC.code = .ICommand_code
+        
+        If objSC.code = 1 Then
+            getCsvPath = strPath
+            Exit Function
+        End If
+        
+        Set objDialog = .dialog
+    End With
+    
+    With objOD
+        .init objDialog
+        .clearFilters
+        .addFilters "CSV", "*.csv"
+        .ICommand_run
+        
+        objSC.code = .ICommand_code
+        strPath = .path
     End With
     
     getCsvPath = strPath
 End Function
 
-'ファイルピッカーを起動し、選択した Excel ファイルのパスを取得して返す。
+'ファイルピッカーダイアログを起動し、選択した Excel ファイルのパスを取得して返す。
 '
 '@return path 選択したファイルのパスを返す。
 Public Function getExcelPath() As String
-    Dim objGFP As New GetFilePath
     Dim strPath As String
+    Dim objDialog As FileDialog
     
-    With objGFP
-        .IExtensionFilters_addDefinition "Excel", "*.xls;*.xlsx;*.xlsm"
-        strPath = .runCommand
-        IStatus_code = .IStatus_code
+    With objGD
+        .init "file"
+        .ICommand_run
+        
+        objSC.code = .ICommand_code
+        
+        If objSC.code = 1 Then
+            getExcelPath = strPath
+            Exit Function
+        End If
+        
+        Set objDialog = .dialog
+    End With
+    
+    With objOD
+        .init objDialog
+        .clearFilters
+        .addFilters "Excel", "*.xls;*.xlsx;*.xlsm"
+        .ICommand_run
+        
+        objSC.code = .ICommand_code
+        strPath = .path
     End With
     
     getExcelPath = strPath
 End Function
 
-'ディレクトリピッカーを起動し、選択したディレクトリのパスを取得して返す。
+'フォルダーピッカーダイアログを起動し、選択したディレクトリのパスを取得して返す。
 '
 '@return path 選択したディレクトリのパスを返す。
 Public Function getDirectoryPath() As String
-    Dim objGDP As New getDirectoryPath
     Dim strPath As String
+    Dim objDialog As FileDialog
     
-    With objGDP
-        strPath = .runCommand
-        IStatus_code = .IStatus_code
+    With objGD
+        .init "directory"
+        .ICommand_run
+        
+        objSC.code = .ICommand_code
+        
+        If objSC.code = 1 Then
+            getDirectoryPath = strPath
+            Exit Function
+        End If
+        
+        Set objDialog = .dialog
+    End With
+    
+    With objOD
+        .init objDialog
+        .ICommand_run
+        
+        objSC.code = .ICommand_code
+        strPath = .path
     End With
     
     getDirectoryPath = strPath
 End Function
+
+Private Sub ICommand_run()
+
+End Sub
