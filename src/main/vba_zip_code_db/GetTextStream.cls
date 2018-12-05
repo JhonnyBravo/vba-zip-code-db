@@ -10,78 +10,95 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements ICommand
+Implements IReturnObject
 
 Private objSC As IStatus
+Private objParams As IParameters
 Private objFSO As FileSystemObject
 
-Private propFile As File
-Private propStream As TextStream
-Private propMode As String
+Private objStream As TextStream
 
 'Properties
 
-'@see ICommand#code
-Public Property Get ICommand_code() As Long
-    ICommand_code = objSC.code
-End Property
-
-'@return stream 取得した TextStream を返す。
-Public Property Get stream() As TextStream
-    Set stream = propStream
+'@see IReturnObject#code
+Public Property Get IReturnObject_code() As Long
+    IReturnObject_code = objSC.code
 End Property
 
 'Methods
 
 Private Sub Class_Initialize()
     Set objSC = New Status
+    Set objParams = New Parameters
     Set objFSO = New FileSystemObject
 End Sub
 
 Private Sub Class_Terminate()
-    propStream.Close
+    objStream.Close
 End Sub
 
-'@param objFile 操作対象とする File を指定する。
-'@param mode TextStream のモードを指定する。
-'   read: 読取専用で開く。
-'   write: 上書きモードで開く。
-'   append: 追記モードで開く。
-Public Sub init(ByRef objFile As File, mode As String)
-    Set propFile = objFile
-    propMode = mode
-End Sub
-
-'TextStream を取得する。
-Public Sub ICommand_run()
+'@return TextStream を取得して返す。
+Public Function IReturnObject_run() As Object
     objSC.initStatus
+
+    Dim objFile As File
+    Dim strMode As String
     
-    If objFSO.FileExists(propFile.path) = False Then
-        With objSC
-            .message = propFile.path & " が見つかりません。"
-            .errorTerminate
-            Exit Sub
-        End With
-    End If
+    With objParams
+        Set objFile = .getObject("file")
+        objSC.code = .code
+        
+        If objSC.code = 1 Then
+            Exit Function
+        End If
+        
+        strMode = .getVariant("mode")
+        objSC.code = .code
+        
+        If objSC.code = 1 Then
+            Exit Function
+        End If
+    End With
     
-    Debug.Print propFile.path & " を開いています......"
-    
-    Select Case propMode
+    Debug.Print objFile.path & " を開いています......"
+
+    Select Case strMode
         Case "read"
-            Set propStream = propFile.OpenAsTextStream(ForReading)
+            Set objStream = objFile.OpenAsTextStream(ForReading)
             objSC.code = 2
         Case "write"
-            Set propStream = propFile.OpenAsTextStream(ForWriting)
+            Set objStream = objFile.OpenAsTextStream(ForWriting)
             objSC.code = 2
         Case "append"
-            Set propStream = propFile.OpenAsTextStream(ForAppending)
+            Set objStream = objFile.OpenAsTextStream(ForAppending)
             objSC.code = 2
         Case Else
-            Set propStream = Nothing
-            
+            Set objStream = Nothing
+
             With objSC
                 .message = "mode の値が不正です。"
                 .errorTerminate
             End With
     End Select
+    
+    Set IReturnObject_run = objStream
+End Function
+
+'@param strKey 有効なキー: file
+'@param objInstance 操作対象とする File を指定する。
+Public Sub IReturnObject_setParamObject(strKey As String, objInstance As Object)
+    objSC.initStatus
+    objParams.setObject strKey, objInstance
+    objSC.code = objParams.code
+End Sub
+
+'@param strKey 有効なキー: mode
+'@param varValue
+'   read: 読取専用で TextStream を取得する。
+'   write: 上書きモードで TextStream を取得する。
+'   append: 追記モードで TextStream を取得する。
+Public Sub IReturnObject_setParamValue(strKey As String, varValue As Variant)
+    objSC.initStatus
+    objParams.setVariant strKey, varValue
+    objSC.code = objParams.code
 End Sub
