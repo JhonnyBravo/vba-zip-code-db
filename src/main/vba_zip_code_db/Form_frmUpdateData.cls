@@ -16,23 +16,31 @@ Private Sub btnImportCSV_Click()
     'インポート対象ファイル群の取得
     Dim strPath As String
     
+    With Me
+        If IsNull(.txtFilePath) Then
+            MsgBox "ファイルパスを指定してください。"
+            Exit Sub
+        End If
+    End With
+    
     strPath = Me.txtFilePath
     
     Dim objGF As New GetFiles
     Dim objFSO As New FileSystemObject
     
+    Dim objDirectory As Folder
     Dim objFiles As files
     Dim objFile As File
     
+    Set objDirectory = objFSO.GetFolder(strPath)
+    
     With objGF
-        .init objFSO.GetFolder(strPath)
-        .ICommand_run
+        .IReturnObject_setParamObject "directory", objDirectory
+        Set objFiles = .IReturnObject_run
         
-        If .ICommand_code = 1 Then
+        If .IReturnObject_code = 1 Then
             Exit Sub
         End If
-        
-        Set objFiles = .files
     End With
     
     'tblUpdateData 初期化処理
@@ -42,7 +50,7 @@ Private Sub btnImportCSV_Click()
     With objDAOC
         Set objQD = .getQuery("deleteUpdateData")
         
-        If .ICommand_code = 1 Then
+        If .IController_code = 1 Then
             Exit Sub
         End If
     End With
@@ -61,27 +69,33 @@ Private Sub btnImportCSV_Click()
             LCase(objFile.path) Like "*add_*.csv" _
         Then
             With objGTS
-                .init objFile, "read"
-                .ICommand_run
+                .IReturnObject_setParamObject "file", objFile
+                .IReturnObject_setParamValue "mode", "read"
+                Set objTS = .IReturnObject_run
                 
-                If .ICommand_code = 1 Then
+                If .IReturnObject_code = 1 Then
                     Exit Sub
                 End If
-                
-                Set objTS = .stream
             End With
             
             With objDAOC
                 Set objRS = .getRecordset("tblUpdateData")
                 
-                If .ICommand_code = 1 Then
+                If .IController_code = 1 Then
                     Exit Sub
                 End If
             End With
             
             With objICSV
-                .init objRS, objTS
-                .ICommand_run
+                .IReturnObject_setParamObject "recordset", objRS
+                .IReturnObject_setParamObject "stream", objTS
+                .IReturnObject_run
+                
+                If .IReturnObject_code = 1 Then
+                    objTS.Close
+                    objRS.Close
+                    Exit Sub
+                End If
             End With
             
             objTS.Close
@@ -95,7 +109,7 @@ Private Sub btnImportCSV_Click()
     With objDAOC
         Set objQD = .getQuery("deleteAddressMaster")
         
-        If .ICommand_code = 1 Then
+        If .IController_code = 1 Then
             Exit Sub
         End If
         
@@ -103,7 +117,7 @@ Private Sub btnImportCSV_Click()
         
         Set objQD = .getQuery("insertAddressMaster")
         
-        If .ICommand_code = 1 Then
+        If .IController_code = 1 Then
             Exit Sub
         End If
         
@@ -126,7 +140,7 @@ Private Sub btnSetFilePath_Click()
     With objDC
         strPath = .getDirectoryPath
         
-        If .ICommand_code = 2 Then
+        If .IController_code = 2 Then
             Me.txtFilePath = strPath
         End If
     End With
