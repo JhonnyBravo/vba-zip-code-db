@@ -10,51 +10,69 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements ICommand
+Implements IReturnObject
 
 Private objStatus As IStatus
-Private propDialogType As String
-Private propDialog As FileDialog
+Private objParams As IParameters
 
 'Properties
 
-'@see ICommand#code
-Public Property Get ICommand_code() As Long
-    ICommand_code = objStatus.code
-End Property
-
-'@return dialog 生成された FileDialog を返す。
-Public Property Get dialog() As FileDialog
-    Set dialog = propDialog
+'@see IReturnObject#code
+Public Property Get IReturnObject_code() As Long
+    IReturnObject_code = objStatus.code
 End Property
 
 'Methods
 
 Private Sub Class_Initialize()
     Set objStatus = New Status
+    Set objParams = New Parameters
 End Sub
 
-'@param dialogType 生成するダイアログの種類を指定する。
-'   file: ファイルピッカーダイアログを生成する。
-'   directory: フォルダーピッカーダイアログを生成する。
-Public Sub init(dialogType As String)
-    propDialogType = dialogType
-End Sub
-
-'ダイアログを生成する。
-Public Sub ICommand_run()
+'@return FileDialog FileDialog を生成して返す。
+Public Function IReturnObject_run() As Object
     objStatus.initStatus
     
-    If propDialogType = "file" Then
-        Set propDialog = Application.FileDialog(msoFileDialogFilePicker)
+    Dim strType As String
+    
+    strType = objParams.getVariant("dialogType")
+    
+    With objStatus
+        .code = objParams.code
+        If .code = 1 Then
+            Exit Function
+        End If
+    End With
+    
+    Dim objDialog As FileDialog
+    
+    If strType = "file" Then
+        Set objDialog = Application.FileDialog(msoFileDialogFilePicker)
         objStatus.code = 2
-    ElseIf propDialogType = "directory" Then
-        Set propDialog = Application.FileDialog(msoFileDialogFolderPicker)
+    ElseIf strType = "directory" Then
+        Set objDialog = Application.FileDialog(msoFileDialogFolderPicker)
         objStatus.code = 2
     Else
         With objStatus
             .message = "dialogType の値が不正です。"
             .errorTerminate
+            Exit Function
         End With
     End If
+    
+    Set IReturnObject_run = objDialog
+End Function
+
+Private Sub IReturnObject_setParamObject(strKey As String, objInstance As Object)
+
+End Sub
+
+'@param strKey 有効なキー: dialogType
+'@param varValue
+'   file: ファイルピッカーダイアログを生成する。
+'   directory: フォルダーピッカーダイアログを生成する。
+Public Sub IReturnObject_setParamValue(strKey As String, varValue As Variant)
+    objStatus.initStatus
+    objParams.setVariant strKey, varValue
+    objStatus.code = objParams.code
 End Sub
