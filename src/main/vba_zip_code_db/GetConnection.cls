@@ -10,21 +10,16 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements ICommand
+Implements IReturnObject
 
 Private objStatus As IStatus
-Private propConnection As DAO.Database
+Private objConnection As DAO.Database
 
 'Properties
 
-'@see ICommand#code
-Public Property Get ICommand_code() As Long
-    ICommand_code = objStatus.code
-End Property
-
-'@return connection 生成された Database を返す。
-Public Property Get connection() As DAO.Database
-    Set connection = propConnection
+'@see IReturnObject#code
+Public Property Get IReturnObject_code() As Long
+    IReturnObject_code = objStatus.code
 End Property
 
 'Methods
@@ -34,15 +29,24 @@ Private Sub Class_Initialize()
 End Sub
 
 Private Sub Class_Terminate()
-    Set propConnection = Nothing
+    Set objConnection = Nothing
 End Sub
 
-'Dabase を生成する。
-Public Sub ICommand_run()
+'@return DAO.Dabase を生成して返す。
+Public Function IReturnObject_run() As Object
     objStatus.initStatus
-    
+
     Debug.Print "接続を確立しています......"
-    Set propConnection = Application.CurrentDb
+    Set objConnection = Application.CurrentDb
+    Set IReturnObject_run = objConnection
     
     objStatus.code = 2
+End Function
+
+Private Sub IReturnObject_setParamObject(strKey As String, objInstance As Object)
+
+End Sub
+
+Private Sub IReturnObject_setParamValue(strKey As String, varValue As Variant)
+
 End Sub
