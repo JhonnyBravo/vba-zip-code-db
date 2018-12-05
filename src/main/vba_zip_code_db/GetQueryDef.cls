@@ -10,54 +10,81 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements ICommand
+Implements IReturnObject
 
 Private objSC As IStatus
+Private objParams As IParameters
 
-Private propConnection As DAO.Database
-Private propQuery As DAO.QueryDef
-Private propSQL As String
+Private objQD As DAO.QueryDef
 
 'Properties
 
-'@see ICommand#code
-Public Property Get ICommand_code() As Long
-    ICommand_code = objSC.code
-End Property
-
-'@return query 生成された QueryDef を返す。
-Public Property Get query() As DAO.QueryDef
-    Set query = propQuery
+'@see IReturnObject#code
+Public Property Get IReturnObject_code() As Long
+    IReturnObject_code = objSC.code
 End Property
 
 'Methods
 
 Private Sub Class_Initialize()
     Set objSC = New Status
+    Set objParams = New Parameters
 End Sub
 
-'@param connection 操作対象とする Database を指定する。
-'@param sql 取得対象とするクエリオブジェクトの名前を指定する。または SQL を直接記述する。
-Public Sub init(ByRef connection As DAO.Database, sql As String)
-    Set propConnection = connection
-    propSQL = sql
-End Sub
-
-'QueryDef を生成する。
-Public Sub ICommand_run()
+'@return DAO.QueryDef を生成して返す。
+Public Function IReturnObject_run() As Object
     objSC.initStatus
     
+    Dim objDB As DAO.Database
+    Dim strSQL As String
+    
+    Set objDB = objParams.getObject("connection")
+    
+    With objSC
+        .code = objParams.code
+        
+        If .code = 1 Then
+            Exit Function
+        End If
+    End With
+    
+    strSQL = objParams.getVariant("sql")
+    
+    With objSC
+        .code = objParams.code
+        
+        If .code = 1 Then
+            Exit Function
+        End If
+    End With
+    
     On Error GoTo errExit
-    
-    Debug.Print propSQL & " を開いています......"
-    Set propQuery = propConnection.QueryDefs(propSQL)
-    
+
+    Debug.Print strSQL & " を開いています......"
+    Set objQD = objDB.QueryDefs(strSQL)
+    Set IReturnObject_run = objQD
     objSC.code = 2
-    
-    Exit Sub
+
+    Exit Function
 errExit:
     With objSC
         .message = "エラーが発生しました。 " & Err.description
         .errorTerminate
     End With
+End Function
+
+'@param strKey 有効なキー: connection
+'@param objInstance 操作対象とする DAO.DataBase を指定する。
+Public Sub IReturnObject_setParamObject(strKey As String, objInstance As Object)
+    objSC.initStatus
+    objParams.setObject strKey, objInstance
+    objSC.code = objParams.code
+End Sub
+
+'@param strKey 有効なキー: sql
+'@param varValue 操作対象とするクエリオブジェクトの名前または SQL を直接記述する。
+Public Sub IReturnObject_setParamValue(strKey As String, varValue As Variant)
+    objSC.initStatus
+    objParams.setVariant strKey, varValue
+    objSC.code = objParams.code
 End Sub
