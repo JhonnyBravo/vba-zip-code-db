@@ -10,9 +10,10 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements ICommand
+Implements IReturnObject
 
 Private objSC As IStatus
+Private objParams As IParameters
 Private objFSO As FileSystemObject
 
 Private propDirectory As Folder
@@ -20,40 +21,55 @@ Private propFiles As files
 
 'Properties
 
-'@see ICommand#code
-Public Property Get ICommand_code() As Long
-    ICommand_code = objSC.code
-End Property
-
-'@retern files 取得した Files を返す。
-Public Property Get files() As files
-    Set files = propFiles
+Public Property Get IReturnObject_code() As Long
+    IReturnObject_code = objSC.code
 End Property
 
 'Methods
 
 Private Sub Class_Initialize()
     Set objSC = New Status
+    Set objParams = New Parameters
     Set objFSO = New FileSystemObject
 End Sub
 
-'@param objDirectory 操作対象とする Folder を指定する。
-Public Sub init(ByRef objDirectory As Folder)
-    Set propDirectory = objDirectory
-End Sub
-
 '指定した Folder 配下に存在する Files を取得する。
-Public Sub ICommand_run()
+'
+'@return Files
+Public Function IReturnObject_run() As Object
     objSC.initStatus
     
-    If objFSO.FolderExists(propDirectory.path) Then
-        Debug.Print propDirectory.path & " 配下のファイル一覧を取得しています......"
-        Set propFiles = propDirectory.files
+    Dim objDirectory As Folder
+    Dim objFiles As files
+    
+    With objParams
+        Set objDirectory = .getObject("directory")
+        objSC.code = .code
+    End With
+    
+    If objSC.code = 1 Then
+        Exit Function
+    End If
+    
+    Debug.Print objDirectory.path & " 配下のファイル一覧を取得しています......"
+    Set objFiles = objDirectory.files
+    Set IReturnObject_run = objFiles
+    
+    If objFiles.Count > 0 Then
         objSC.code = 2
     Else
-        With objSC
-            .message = propDirectory.path & " が見つかりません。"
-            .errorTerminate
-        End With
+        objSC.initStatus
     End If
+End Function
+
+'@param strKey 有効なキー: directory
+'@param objInstance 操作対象とする Folder を指定する。
+Public Sub IReturnObject_setParamObject(strKey As String, objInstance As Object)
+    objSC.initStatus
+    objParams.setObject strKey, objInstance
+    objSC.code = objParams.code
+End Sub
+
+Private Sub IReturnObject_setParamValue(strKey As String, varValue As Variant)
+
 End Sub
