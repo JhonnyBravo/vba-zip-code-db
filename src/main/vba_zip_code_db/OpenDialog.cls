@@ -10,39 +10,33 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements ICommand
+Implements IReturnVariant
 
 Private objStatus As IStatus
-Private propDialog As FileDialog
-Private propPath As String
+Private objParams As IParameters
+
+Private objDialog As FileDialog
+Private boolDialog As Boolean
 
 'Properties
 
-'@see ICommand#code
-Public Property Get ICommand_code() As Long
-    ICommand_code = objStatus.code
-End Property
-
-'@return ダイアログから取得したパスを返す。
-Public Property Get path() As String
-    path = propPath
+'@see IReturnVariant#code
+Public Property Get IReturnVariant_code() As Long
+    IReturnVariant_code = objStatus.code
 End Property
 
 'Methods
 
 Private Sub Class_Initialize()
     Set objStatus = New Status
-End Sub
-
-'@param dialog 操作対象とする FileDialog を指定する。
-Public Sub init(ByRef dialog As FileDialog)
-    Set propDialog = dialog
+    Set objParams = New Parameters
+    boolDialog = False
 End Sub
 
 '拡張子フィルターを空にする。
 Public Sub clearFilters()
     objStatus.initStatus
-    propDialog.Filters.Clear
+    objDialog.Filters.Clear
     objStatus.code = 2
 End Sub
 
@@ -57,7 +51,7 @@ Public Sub addFilters(description As String, definition As String)
     
     On Error GoTo errExit
     
-    propDialog.Filters.Add description, definition
+    objDialog.Filters.Add description, definition
     objStatus.code = 2
     Exit Sub
     
@@ -68,19 +62,42 @@ errExit:
     End With
 End Sub
 
-'FileDialog を開く。
-Public Sub ICommand_run()
+'@return path FileDialog 上で選択したファイルまたはディレクトリのパスを取得して返す。
+Public Function IReturnVariant_run() As Variant
     objStatus.initStatus
     
-    With propDialog
+    If boolDialog = False Then
+        With objStatus
+            .message = "dialog が設定されていません。"
+            .errorTerminate
+            Exit Function
+        End With
+    End If
+    
+    Dim strPath As String
+    
+    With objDialog
         .AllowMultiSelect = False
         .InitialFileName = Application.CurrentProject.path
-        
+
         If .Show = -1 Then
-            propPath = .SelectedItems(1)
+            strPath = .SelectedItems(1)
             objStatus.code = 2
-        Else
-            propPath = ""
         End If
     End With
+    
+    IReturnVariant_run = strPath
+End Function
+
+'@param strKey 有効なキー: dialog
+'@param objInstance 操作対象とする FileDialog を指定する。
+Public Sub IReturnVariant_setParamObject(strKey As String, objInstance As Object)
+    If strKey = "dialog" Then
+        boolDialog = True
+        Set objDialog = objInstance
+    End If
+End Sub
+
+Private Sub IReturnVariant_setParamValue(strKey As String, varValue As Variant)
+
 End Sub
