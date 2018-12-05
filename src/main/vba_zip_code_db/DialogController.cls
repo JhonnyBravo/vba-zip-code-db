@@ -10,7 +10,7 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements ICommand
+Implements IController
 
 Private objSC As IStatus
 Private objGD As GetDialog
@@ -18,9 +18,8 @@ Private objOD As OpenDialog
 
 'Properties
 
-'@see ICommand#code
-Public Property Get ICommand_code() As Long
-    ICommand_code = objSC.code
+Public Property Get IController_code() As Long
+    IController_code = objSC.code
 End Property
 
 'Methods
@@ -39,27 +38,24 @@ Public Function getCsvPath() As String
     Dim objDialog As FileDialog
     
     With objGD
-        .init "file"
-        .ICommand_run
+        .IReturnObject_setParamValue "dialogType", "file"
+        Set objDialog = .IReturnObject_run
         
-        objSC.code = .ICommand_code
+        objSC.code = .IReturnObject_code
         
         If objSC.code = 1 Then
             getCsvPath = strPath
             Exit Function
         End If
-        
-        Set objDialog = .dialog
     End With
     
     With objOD
-        .init objDialog
+        .IReturnVariant_setParamObject "dialog", objDialog
         .clearFilters
         .addFilters "CSV", "*.csv"
-        .ICommand_run
-        
-        objSC.code = .ICommand_code
-        strPath = .path
+
+        strPath = .IReturnVariant_run
+        objSC.code = .IReturnVariant_code
     End With
     
     getCsvPath = strPath
@@ -73,27 +69,24 @@ Public Function getExcelPath() As String
     Dim objDialog As FileDialog
     
     With objGD
-        .init "file"
-        .ICommand_run
+        .IReturnObject_setParamValue "dialogType", "file"
+        Set objDialog = .IReturnObject_run
         
-        objSC.code = .ICommand_code
+        objSC.code = .IReturnObject_code
         
         If objSC.code = 1 Then
             getExcelPath = strPath
             Exit Function
         End If
-        
-        Set objDialog = .dialog
     End With
     
     With objOD
-        .init objDialog
+        .IReturnVariant_setParamObject "dialog", objDialog
         .clearFilters
         .addFilters "Excel", "*.xls;*.xlsx;*.xlsm"
-        .ICommand_run
         
-        objSC.code = .ICommand_code
-        strPath = .path
+        strPath = .IReturnVariant_run
+        objSC.code = .IReturnVariant_code
     End With
     
     getExcelPath = strPath
@@ -107,30 +100,22 @@ Public Function getDirectoryPath() As String
     Dim objDialog As FileDialog
     
     With objGD
-        .init "directory"
-        .ICommand_run
+        .IReturnObject_setParamValue "dialogType", "directory"
+        Set objDialog = .IReturnObject_run
         
-        objSC.code = .ICommand_code
+        objSC.code = .IReturnObject_code
         
         If objSC.code = 1 Then
             getDirectoryPath = strPath
             Exit Function
         End If
-        
-        Set objDialog = .dialog
     End With
     
     With objOD
-        .init objDialog
-        .ICommand_run
-        
-        objSC.code = .ICommand_code
-        strPath = .path
+        .IReturnVariant_setParamObject "dialog", objDialog
+        strPath = .IReturnVariant_run
+        objSC.code = .IReturnVariant_code
     End With
     
     getDirectoryPath = strPath
 End Function
-
-Private Sub ICommand_run()
-
-End Sub
