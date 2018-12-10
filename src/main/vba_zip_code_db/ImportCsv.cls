@@ -10,39 +10,49 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements IReturnObject
+Implements IImportCsv
 Implements IIterator
 
 Private objStatus As IStatus
 
-Private boolRecordset As Boolean
-Private boolStream As Boolean
-Private objRecordset As DAO.recordset
-Private objStream As TextStream
+Private propRecordset As DAO.Recordset
+Private propStream As TextStream
 
 Private varArray As Variant
 Private strLine As String
 
-'Properties
-
-'@see IReturnObject#code
-Public Property Get IReturnObject_code() As Long
-    IReturnObject_code = objStatus.code
-End Property
-
-'Methods
-
 Private Sub Class_Initialize()
     Set objStatus = New Status
-    boolRecordset = False
-    boolStream = False
 End Sub
+
+'@see IImportCsv#setRecordset
+Public Function IImportCsv_setRecordset(objRecordset As DAO.Recordset) As IImportCsv
+    objStatus.initStatus
+    Set propRecordset = objRecordset
+    objStatus.setCode 2
+    
+    Set IImportCsv_setRecordset = Me
+End Function
+
+'@see IImportCsv#setStream
+Public Function IImportCsv_setStream(objStream As TextStream) As IImportCsv
+    objStatus.initStatus
+    Set propStream = objStream
+    objStatus.setCode 2
+    
+    Set IImportCsv_setStream = Me
+End Function
+
+'@see IImportCsv#Status
+Public Property Get IImportCsv_Status() As IStatus
+    Set IImportCsv_Status = objStatus
+End Property
 
 '@return Boolean CSV に次の行が存在するかを確認する。
 '   True: 次の行が存在することを表す。
 '   False: 次の行が存在しないことを表す。
 Private Function IIterator_hasNext() As Boolean
-    If objStream.AtEndOfStream = False Then
+    If propStream.AtEndOfStream = False Then
         IIterator_hasNext = True
     Else
         IIterator_hasNext = False
@@ -51,41 +61,35 @@ End Function
 
 '@return array CSV から一行読込み、配列に変換して返す。
 Private Function IIterator_nextArray() As Variant
-    strLine = objStream.ReadLine
+    strLine = propStream.ReadLine
     varArray = Split(Replace(strLine, """", ""), ",")
     IIterator_nextArray = varArray
 End Function
 
-'CSV からレコードを取得し、 Access のテーブルオブジェクトへ登録する。
-Public Function IReturnObject_run() As Object
+'@see IImportCsv#import
+Public Function IImportCsv_import() As IImportCsv
     objStatus.initStatus
     
-    If boolRecordset = False Then
-        With objStatus
-            .message = "recordset を指定してください。"
-            .errorTerminate
-            Exit Function
-        End With
+    If propStream Is Nothing Then
+        objStatus.errorTerminate "TextStream を指定してください。"
+        GoTo finally
     End If
     
-    If boolStream = False Then
-        With objStatus
-            .message = "stream を指定してください。"
-            .errorTerminate
-            Exit Function
-        End With
+    If propRecordset Is Nothing Then
+        objStatus.errorTerminate "Recordset を指定してください。"
+        GoTo finally
     End If
     
     Debug.Print "レコードを登録しています......"
 
-    On Error GoTo errExit
+    On Error GoTo catch
     
     Dim lngID As Long
     
     While IIterator_hasNext
         IIterator_nextArray
         
-        With objRecordset
+        With propRecordset
             .AddNew
             
             If .RecordCount = 0 Then
@@ -124,11 +128,11 @@ Public Function IReturnObject_run() As Object
                 .Fields("町域名").Value = varArray(8)
             End If
 
-            If varArray(2) <> "" Then
+            If varArray(13) <> "" Then
                 .Fields("更新の表示").Value = varArray(13)
             End If
 
-            If varArray(2) <> "" Then
+            If varArray(14) <> "" Then
                 .Fields("変更理由").Value = varArray(14)
             End If
             
@@ -136,33 +140,10 @@ Public Function IReturnObject_run() As Object
         End With
     Wend
 
-    objStatus.code = 2
-    Exit Function
-errExit:
-    With objStatus
-        .message = "エラーが発生しました。 " & Err.description
-        .errorTerminate
-    End With
+    objStatus.setCode 2
+    GoTo finally
+catch:
+    objStatus.errorTerminate "エラーが発生しました。 " & Err.description
+finally:
+    Set IImportCsv_import = Me
 End Function
-
-'@param strKey 有効なキー: recordset, stream
-'@param objInstance
-'   recordset: 操作対象とする DAO.Recordset を指定する。
-'   stream: 操作対象とする TextStream を指定する。
-Public Sub IReturnObject_setParamObject(strKey As String, objInstance As Object)
-    objStatus.initStatus
-    
-    If strKey = "recordset" Then
-        Set objRecordset = objInstance
-        boolRecordset = True
-        objStatus.code = 2
-    ElseIf strKey = "stream" Then
-        Set objStream = objInstance
-        boolStream = True
-        objStatus.code = 2
-    End If
-End Sub
-
-Private Sub IReturnObject_setParamValue(strKey As String, varValue As Variant)
-
-End Sub
