@@ -13,41 +13,29 @@ Option Explicit
 Implements IStatus
 
 Private propCode As Long
-Private propMessage As String
 
-'Properties
-
-'@see IStatus#code
-Public Property Let IStatus_code(lngCode As Long)
+'@see IStatus#setCode
+Public Function IStatus_setCode(lngCode As Long) As IStatus
     propCode = lngCode
-End Property
+    Set IStatus_setCode = Me
+End Function
 
-'@see IStatus#code
-Public Property Get IStatus_code() As Long
-    IStatus_code = propCode
-End Property
-
-'@see IStatus#message
-Public Property Let IStatus_message(strMessage As String)
-    propMessage = strMessage
-End Property
-
-'@see IStatus#message
-Public Property Get IStatus_message() As String
-    IStatus_message = propMessage
-End Property
-
-'Methods
+'@see IStatus#getCode
+Public Function IStatus_getCode() As Long
+    IStatus_getCode = propCode
+End Function
 
 '@see IStatus#errorTerminate
-Public Sub IStatus_errorTerminate()
-    IStatus_code = 1
-    Debug.Print IStatus_message
-    MsgBox IStatus_message
-End Sub
+Public Function IStatus_errorTerminate(strMessage As String) As IStatus
+    propCode = 1
+    Set IStatus_errorTerminate = Me
+    
+    Debug.Print strMessage
+    MsgBox strMessage
+End Function
 
 '@see IStatus#initStatus
-Public Sub IStatus_initStatus()
-    IStatus_code = 0
-    IStatus_message = ""
-End Sub
+Public Function IStatus_initStatus() As IStatus
+    propCode = 0
+    Set IStatus_initStatus = Me
+End Function
