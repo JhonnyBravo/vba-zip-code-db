@@ -10,112 +10,93 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements IController
+Implements IDialog
 
-Private objSC As IStatus
-Private objGD As GetDialog
-Private objOD As OpenDialog
-
-'Properties
-
-Public Property Get IController_code() As Long
-    IController_code = objSC.code
-End Property
-
-'Methods
+Private objStatus As IStatus
+Private objFD As FileDialog
+Private strPath As String
 
 Private Sub Class_Initialize()
-    Set objSC = New Status
-    Set objGD = New GetDialog
-    Set objOD = New OpenDialog
+    Set objStatus = New Status
 End Sub
 
-'ファイルピッカーダイアログを起動し、選択した CSV ファイルのパスを取得して返す。
-'
-'@return path 選択したファイルのパスを返す。
-Public Function getCsvPath() As String
-    Dim strPath As String
-    Dim objDialog As FileDialog
+'@see IDialog#addFilters
+Public Function IDialog_addFilters(strName As String, strDefinition As String) As IDialog
+    objStatus.initStatus
     
-    With objGD
-        .IReturnObject_setParamValue "dialogType", "file"
-        Set objDialog = .IReturnObject_run
+    On Error GoTo catch
+    
+    objFD.Filters.Add strName, strDefinition
+    objStatus.setCode 2
+    GoTo finally
+catch:
+    objStatus.errorTerminate "エラーが発生しました。 " & Err.description
+finally:
+    Set IDialog_addFilters = Me
+End Function
+
+'@see IDialog#clearFilters
+Public Function IDialog_clearFilters() As IDialog
+    objStatus.initStatus
+    
+    On Error GoTo catch
+    
+    objFD.Filters.Clear
+    objStatus.setCode 2
+    GoTo finally
+catch:
+    objStatus.errorTerminate "エラーが発生しました。 " & Err.description
+finally:
+    Set IDialog_clearFilters = Me
+End Function
+
+'@see IDialog#getPath
+Public Function IDialog_getPath() As String
+    IDialog_getPath = strPath
+End Function
+
+'@see IDialog#initDialog
+Public Function IDialog_initDialog(strType As String) As IDialog
+    objStatus.initStatus
+    
+    If strType = "file" Then
+        Set objFD = Application.FileDialog(msoFileDialogFilePicker)
+        objStatus.setCode 2
+    ElseIf strType = "directory" Then
+        Set objFD = Application.FileDialog(msoFileDialogFolderPicker)
+        objStatus.setCode 2
+    Else
+        objStatus.errorTerminate "strType の値が不正です。"
+    End If
+    
+    Set IDialog_initDialog = Me
+End Function
+
+'@see IDialog#openDialog
+Public Function IDialog_openDialog() As IDialog
+    objStatus.initStatus
+    strPath = ""
+    
+    On Error GoTo catch
+    
+    With objFD
+        .AllowMultiSelect = False
+        .InitialFileName = Application.CurrentProject.path
         
-        objSC.code = .IReturnObject_code
-        
-        If objSC.code = 1 Then
-            getCsvPath = strPath
-            Exit Function
+        If .Show = -1 Then
+            strPath = .SelectedItems(1)
+            objStatus.setCode 2
         End If
     End With
     
-    With objOD
-        .IReturnVariant_setParamObject "dialog", objDialog
-        .clearFilters
-        .addFilters "CSV", "*.csv"
-
-        strPath = .IReturnVariant_run
-        objSC.code = .IReturnVariant_code
-    End With
-    
-    getCsvPath = strPath
+    GoTo finally
+catch:
+    objStatus.errorTerminate "エラーが発生しました。 " & Err.description
+finally:
+    Set IDialog_openDialog = Me
 End Function
 
-'ファイルピッカーダイアログを起動し、選択した Excel ファイルのパスを取得して返す。
-'
-'@return path 選択したファイルのパスを返す。
-Public Function getExcelPath() As String
-    Dim strPath As String
-    Dim objDialog As FileDialog
-    
-    With objGD
-        .IReturnObject_setParamValue "dialogType", "file"
-        Set objDialog = .IReturnObject_run
-        
-        objSC.code = .IReturnObject_code
-        
-        If objSC.code = 1 Then
-            getExcelPath = strPath
-            Exit Function
-        End If
-    End With
-    
-    With objOD
-        .IReturnVariant_setParamObject "dialog", objDialog
-        .clearFilters
-        .addFilters "Excel", "*.xls;*.xlsx;*.xlsm"
-        
-        strPath = .IReturnVariant_run
-        objSC.code = .IReturnVariant_code
-    End With
-    
-    getExcelPath = strPath
-End Function
-
-'フォルダーピッカーダイアログを起動し、選択したディレクトリのパスを取得して返す。
-'
-'@return path 選択したディレクトリのパスを返す。
-Public Function getDirectoryPath() As String
-    Dim strPath As String
-    Dim objDialog As FileDialog
-    
-    With objGD
-        .IReturnObject_setParamValue "dialogType", "directory"
-        Set objDialog = .IReturnObject_run
-        
-        objSC.code = .IReturnObject_code
-        
-        If objSC.code = 1 Then
-            getDirectoryPath = strPath
-            Exit Function
-        End If
-    End With
-    
-    With objOD
-        .IReturnVariant_setParamObject "dialog", objDialog
-        strPath = .IReturnVariant_run
-        objSC.code = .IReturnVariant_code
-    End With
-    
-    getDirectoryPath = strPath
-End Function
+'@see IDialog#Status
+Public Property Get IDialog_Status() As IStatus
+    Set IDialog_Status = objStatus
+End Property
