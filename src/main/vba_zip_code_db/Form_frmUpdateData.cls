@@ -25,104 +25,89 @@ Private Sub btnImportCSV_Click()
     
     strPath = Me.txtFilePath
     
-    Dim objGF As New GetFiles
-    Dim objFSO As New FileSystemObject
-    
-    Dim objDirectory As Folder
+    Dim objGF As IFileSystem
+
     Dim objFiles As files
     Dim objFile As File
     
-    Set objDirectory = objFSO.GetFolder(strPath)
+    Set objGF = New GetFiles
+    Set objFiles = objGF.getItem(strPath)
     
-    With objGF
-        .IReturnObject_setParamObject "directory", objDirectory
-        Set objFiles = .IReturnObject_run
-        
-        If .IReturnObject_code = 1 Then
-            Exit Sub
-        End If
-    End With
+    If objGF.Status.getCode = 1 Then
+        Exit Sub
+    End If
     
     'tblUpdateData 初期化処理
-    Dim objDAOC As New DaoController
+    Dim objDAOC As IDao
     Dim objQD As DAO.QueryDef
     
-    With objDAOC
-        Set objQD = .getQuery("deleteUpdateData")
-        
-        If .IController_code = 1 Then
-            Exit Sub
-        End If
-    End With
+    Set objDAOC = New DaoController
+    Set objQD = objDAOC.openConnection.openQueryDef("deleteUpdateData").getQueryDef
+    
+    If objDAOC.Status.getCode = 1 Then
+        Exit Sub
+    End If
     
     objQD.Execute
+    objDAOC.closeQueryDef
     
-    Dim objGTS As New GetTextStream
+    Dim objGTS As IStream
+    Dim objICSV As IImportCsv
+    
     Dim objTS As TextStream
-    Dim objRS As DAO.recordset
+    Dim objRS As DAO.Recordset
     
-    Dim objICSV As New ImportCsv
+    Set objGTS = New GetTextStream
+    Set objICSV = New ImportCsv
     
     '更新ファイルインポート処理
     For Each objFile In objFiles
         If LCase(objFile.path) Like "*del_*.csv" Or _
             LCase(objFile.path) Like "*add_*.csv" _
         Then
-            With objGTS
-                .IReturnObject_setParamObject "file", objFile
-                .IReturnObject_setParamValue "mode", "read"
-                Set objTS = .IReturnObject_run
-                
-                If .IReturnObject_code = 1 Then
-                    Exit Sub
-                End If
-            End With
+            Set objTS = objGTS.openStream(objFile, "read").getStream
             
-            With objDAOC
-                Set objRS = .getRecordset("tblUpdateData")
-                
-                If .IController_code = 1 Then
-                    Exit Sub
-                End If
-            End With
+            If objGTS.Status.getCode = 1 Then
+                Exit Sub
+            End If
             
-            With objICSV
-                .IReturnObject_setParamObject "recordset", objRS
-                .IReturnObject_setParamObject "stream", objTS
-                .IReturnObject_run
-                
-                If .IReturnObject_code = 1 Then
-                    objTS.Close
-                    objRS.Close
-                    Exit Sub
-                End If
-            End With
+            Set objRS = objDAOC.openRecordset("tblUpdateData").getRecordset
             
-            objTS.Close
-            objRS.Close
+            If objDAOC.Status.getCode = 1 Then
+                Exit Sub
+            End If
+            
+            objICSV.setRecordset(objRS).setStream(objTS).import
+            
+            If objICSV.Status.getCode = 1 Then
+                Exit Sub
+            End If
+            
+            objGTS.closeStream
+            objDAOC.closeRecordset
         End If
     Next
     
     'tblAddressMaster 更新処理
     On Error GoTo errExit
     
-    With objDAOC
-        Set objQD = .getQuery("deleteAddressMaster")
-        
-        If .IController_code = 1 Then
-            Exit Sub
-        End If
-        
-        objQD.Execute
-        
-        Set objQD = .getQuery("insertAddressMaster")
-        
-        If .IController_code = 1 Then
-            Exit Sub
-        End If
-        
-        objQD.Execute
-    End With
+    Set objQD = objDAOC.openQueryDef("deleteAddressMaster").getQueryDef
+    
+    If objDAOC.Status.getCode = 1 Then
+        Exit Sub
+    End If
+    
+    objQD.Execute
+    objDAOC.closeQueryDef
+    
+    Set objQD = objDAOC.openQueryDef("insertAddressMaster").getQueryDef
+    
+    If objDAOC.Status.getCode = 1 Then
+        Exit Sub
+    End If
+    
+    objQD.Execute
+    objDAOC.closeQueryDef
     
     Debug.Print "作業終了: " & Time
     MsgBox "CSV 取込が完了しました。"
@@ -135,15 +120,14 @@ End Sub
 
 Private Sub btnSetFilePath_Click()
     Dim strPath As String
-    Dim objDC As New DialogController
+    Dim objDialog As IDialog
     
-    With objDC
-        strPath = .getDirectoryPath
-        
-        If .IController_code = 2 Then
-            Me.txtFilePath = strPath
-        End If
-    End With
+    Set objDialog = New DialogController
+    strPath = objDialog.initDialog("directory").openDialog.getPath
+    
+    If objDialog.Status.getCode = 2 Then
+        Me.txtFilePath = strPath
+    End If
 End Sub
 
 Private Sub Form_Load()
