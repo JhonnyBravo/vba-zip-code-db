@@ -11,34 +11,31 @@ Option Compare Database
 Option Explicit
 
 '@return code メソッド実行直後の終了コードを返す。
-Public Property Get code() As Long
+Public Function getCode() As Long
 
-End Property
+End Function
 
 '@param lngCode メソッド実行直後の終了コードを指定する。
-'   0: 成功もエラーもなく何も実行せずに終了した状態を表す。
+'   0: 失敗も成功もなく何もせずに終了した状態を表す。
 '   1: 異常終了した状態を表す。
 '   2: メソッドの実行に成功した状態を表す。
-Public Property Let code(lngCode As Long)
+'
+'@return IStatus
+Public Function setCode(lngCode As Long) As IStatus
 
-End Property
+End Function
 
-'@return message 異常終了時のエラーメッセージを返す。
-Public Property Get message() As String
+'終了コードを初期化する。
+'
+'@return IStatus
+Public Function initStatus() As IStatus
 
-End Property
+End Function
 
-'@param strMessage 異常終了時のエラーメッセージを指定する。
-Public Property Let message(strMessage As String)
+'エラー発生時にダイアログとコンソールへメッセージを出力する。
+'
+'@param strMessage エラーメッセージとして表示する文字列を指定する。
+'@return IStatus
+Public Function errorTerminate(strMessage As String) As IStatus
 
-End Property
-
-'終了コードとエラーメッセージを初期化する。
-Public Sub initStatus()
-
-End Sub
-
-'終了コードを 1 に自動設定し、エラーメッセージを出力する。
-Public Sub errorTerminate()
-
-End Sub
+End Function
