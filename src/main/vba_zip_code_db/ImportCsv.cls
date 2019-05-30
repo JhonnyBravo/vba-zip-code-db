@@ -10,128 +10,123 @@ Attribute VB_Exposed = False
 Option Compare Database
 Option Explicit
 
-Implements IImportCsv
-Implements IIterator
+Private propRR As recordsetResource
+Private propFR As fileResource
+Private propStatus As StatusResource
 
-Private objStatus As IStatus
-
-Private propRecordset As DAO.Recordset
-Private propStream As TextStream
-
-Private varArray As Variant
-Private strLine As String
-
-Private Sub Class_Initialize()
-    Set objStatus = New Status
-End Sub
-
-'@see IImportCsv#setRecordset
-Public Function IImportCsv_setRecordset(objRecordset As DAO.Recordset) As IImportCsv
-    objStatus.initStatus
-    Set propRecordset = objRecordset
-    objStatus.setCode 2
-    
-    Set IImportCsv_setRecordset = Me
-End Function
-
-'@see IImportCsv#setStream
-Public Function IImportCsv_setStream(objStream As TextStream) As IImportCsv
-    objStatus.initStatus
-    Set propStream = objStream
-    objStatus.setCode 2
-    
-    Set IImportCsv_setStream = Me
-End Function
-
-'@see IImportCsv#Status
-Public Property Get IImportCsv_Status() As IStatus
-    Set IImportCsv_Status = objStatus
+'''
+'@return RecordsetResource
+'''
+Public Property Get recordsetResource() As recordsetResource
+    Set recordsetResource = propRR
 End Property
 
-'@return Boolean CSV に次の行が存在するかを確認する。
-'   True: 次の行が存在することを表す。
-'   False: 次の行が存在しないことを表す。
-Private Function IIterator_hasNext() As Boolean
-    If propStream.AtEndOfStream = False Then
-        IIterator_hasNext = True
-    Else
-        IIterator_hasNext = False
-    End If
-End Function
+'''
+'@param resource 操作対象とする RecordsetResource を指定する。
+'''
+Public Property Let recordsetResource(ByRef resource As recordsetResource)
+    Set propRR = resource
+End Property
 
-'@return array CSV から一行読込み、配列に変換して返す。
-Private Function IIterator_nextArray() As Variant
-    strLine = propStream.ReadLine
-    varArray = Split(Replace(strLine, """", ""), ",")
-    IIterator_nextArray = varArray
-End Function
+'''
+'@return FileResource
+'''
+Public Property Get fileResource() As fileResource
+    Set fileResource = propFR
+End Property
 
-'@see IImportCsv#import
-Public Function IImportCsv_import() As IImportCsv
-    objStatus.initStatus
+'''
+'@param resource 操作対象とする FileResource を指定する。
+'''
+Public Property Let fileResource(ByRef resource As fileResource)
+    Set propFR = resource
+End Property
+
+'''
+'@return StatusResource
+'''
+Public Property Get status() As StatusResource
+    Set status = propStatus
+End Property
+
+Private Sub Class_Initialize()
+    Set propStatus = New StatusResource
+End Sub
+
+'''
+'CSV をテーブルへインポートする。
+'''
+Public Sub import()
+    Dim objRS As DAO.Recordset
+    Dim objTS As TextStream
     
-    If propStream Is Nothing Then
-        objStatus.errorTerminate "TextStream を指定してください。"
-        GoTo finally
+    Set objRS = recordsetResource.context.openContext
+    status.code = recordsetResource.status.code
+    
+    If status.code = 1 Then
+        Exit Sub
     End If
     
-    If propRecordset Is Nothing Then
-        objStatus.errorTerminate "Recordset を指定してください。"
-        GoTo finally
+    Set objTS = fileResource.context.openContext
+    status.code = fileResource.status.code
+    
+    If status.code = 1 Then
+        Exit Sub
     End If
     
-    Debug.Print "レコードを登録しています......"
-
+    Dim strLine As String
+    Dim varArray As Variant
+    Dim lngId As Long
+    
     On Error GoTo catch
     
-    Dim lngID As Long
-    
-    While IIterator_hasNext
-        IIterator_nextArray
+    While objTS.AtEndOfStream = False
+        strLine = objTS.ReadLine
+        varArray = Split(Replace(strLine, """", ""), ",")
         
-        With propRecordset
+        With objRS
             .AddNew
             
             If .RecordCount = 0 Then
-                lngID = 1
+                lngId = 1
             Else
-                lngID = DMax("ID", "tblUpdateData") + 1
+                lngId = DMax("ID", "tblUpdateData") + 1
             End If
             
-            .Fields("ID").Value = lngID
+            .Fields("ID").Value = lngId
             
             If varArray(2) <> "" Then
                 .Fields("郵便番号").Value = varArray(2)
             End If
-
+            
             If varArray(3) <> "" Then
                 .Fields("都道府県名-カナ").Value = varArray(3)
             End If
-
+            
             If varArray(4) <> "" Then
                 .Fields("市区町村名-カナ").Value = varArray(4)
             End If
-
+            
             If varArray(5) <> "" Then
                 .Fields("町域名-カナ").Value = varArray(5)
             End If
-
+            
             If varArray(6) <> "" Then
                 .Fields("都道府県名").Value = varArray(6)
             End If
-
+            
             If varArray(7) <> "" Then
                 .Fields("市区町村名").Value = varArray(7)
             End If
-
+            
             If varArray(8) <> "" Then
                 .Fields("町域名").Value = varArray(8)
             End If
-
+            
             If varArray(13) <> "" Then
                 .Fields("更新の表示").Value = varArray(13)
             End If
-
+            
             If varArray(14) <> "" Then
                 .Fields("変更理由").Value = varArray(14)
             End If
@@ -139,11 +134,14 @@ Public Function IImportCsv_import() As IImportCsv
             .Update
         End With
     Wend
-
-    objStatus.setCode 2
+    
+    status.code = 2
     GoTo finally
+    
 catch:
-    objStatus.errorTerminate "エラーが発生しました。 " & Err.description
+    status.printMessage 1, "エラーが発生しました。 " & Err.Description
+    Debug.Print objTS.Line & " 行目: " & strLine
 finally:
-    Set IImportCsv_import = Me
-End Function
+    fileResource.context.closeContext
+    recordsetResource.context.closeContext
+End Sub
