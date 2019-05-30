@@ -25,109 +25,97 @@ Private Sub btnImportCSV_Click()
     
     strPath = Me.txtFilePath
     
-    Dim objGF As IFileSystem
-
-    Dim objFiles As files
+    Dim objDR As DirectoryResource
+    Dim objFiles As Files
     Dim objFile As File
     
-    Set objGF = New GetFiles
-    Set objFiles = objGF.getItem(strPath)
-    
-    If objGF.Status.getCode = 1 Then
+    Set objDR = NewDirectoryResource(strPath)
+    Set objFiles = objDR.getFiles
+        
+    If objDR.status.code = 1 Then
         Exit Sub
     End If
     
     'tblUpdateData 初期化処理
-    Dim objDAOC As IDao
+    Dim objQR As QueryResource
     Dim objQD As DAO.QueryDef
     
-    Set objDAOC = New DaoController
-    Set objQD = objDAOC.openConnection.openQueryDef("deleteUpdateData").getQueryDef
+    Set objQR = NewQueryResource(NewConnectionResource(), "deleteUpdateData")
+    Set objQD = objQR.context.openContext
     
-    If objDAOC.Status.getCode = 1 Then
+    If objQR.status.code = 1 Then
         Exit Sub
     End If
     
     objQD.Execute
-    objDAOC.closeQueryDef
+    objQR.context.closeContext
     
-    Dim objGTS As IStream
-    Dim objICSV As IImportCsv
-    
-    Dim objTS As TextStream
-    Dim objRS As DAO.Recordset
-    
-    Set objGTS = New GetTextStream
-    Set objICSV = New ImportCsv
+    Dim objIC As ImportCsv
     
     '更新ファイルインポート処理
     For Each objFile In objFiles
         If LCase(objFile.path) Like "*del_*.csv" Or _
             LCase(objFile.path) Like "*add_*.csv" _
         Then
-            Set objTS = objGTS.openStream(objFile, "read").getStream
+            Set objIC = New ImportCsv
             
-            If objGTS.Status.getCode = 1 Then
-                Exit Sub
-            End If
-            
-            Set objRS = objDAOC.openRecordset("tblUpdateData").getRecordset
-            
-            If objDAOC.Status.getCode = 1 Then
-                Exit Sub
-            End If
-            
-            objICSV.setRecordset(objRS).setStream(objTS).import
-            
-            If objICSV.Status.getCode = 1 Then
-                Exit Sub
-            End If
-            
-            objGTS.closeStream
-            objDAOC.closeRecordset
+            With objIC
+                .fileResource = NewFileResource(objFile.path)
+                .recordsetResource = NewRecordsetResource(NewConnectionResource(), "tblUpdateData")
+                .import
+                
+                If .status.code = 1 Then
+                    Exit Sub
+                End If
+            End With
         End If
     Next
     
     'tblAddressMaster 更新処理
     On Error GoTo errExit
     
-    Set objQD = objDAOC.openQueryDef("deleteAddressMaster").getQueryDef
+    Set objQR = NewQueryResource(NewConnectionResource(), "deleteAddressMaster")
+    Set objQD = objQR.context.openContext
     
-    If objDAOC.Status.getCode = 1 Then
+    If objQR.status.code = 1 Then
         Exit Sub
     End If
     
     objQD.Execute
-    objDAOC.closeQueryDef
+    objQR.context.closeContext
     
-    Set objQD = objDAOC.openQueryDef("insertAddressMaster").getQueryDef
-    
-    If objDAOC.Status.getCode = 1 Then
+    Set objQR = NewQueryResource(NewConnectionResource(), "insertAddressMaster")
+    Set objQD = objQR.context.openContext
+        
+    If objQR.status.code = 1 Then
         Exit Sub
     End If
     
     objQD.Execute
-    objDAOC.closeQueryDef
+    objQR.context.closeContext
     
     Debug.Print "作業終了: " & Time
     MsgBox "CSV 取込が完了しました。"
     Exit Sub
     
 errExit:
-    Debug.Print "エラーが発生しました。 " & Err.description
-    MsgBox "エラーが発生しました。 " & Err.description
+    Debug.Print "エラーが発生しました。 " & Err.Description
+    MsgBox "エラーが発生しました。 " & Err.Description
 End Sub
 
 Private Sub btnSetFilePath_Click()
     Dim strPath As String
-    Dim objDialog As IDialog
+    Dim objDR As DialogResource
     
-    Set objDialog = New DialogController
-    strPath = objDialog.initDialog("directory").openDialog.getPath
+    Set objDR = NewDialogResource("directory")
     
-    If objDialog.Status.getCode = 2 Then
-        Me.txtFilePath = strPath
-    End If
+    With objDR
+        strPath = .getPath
+        
+        If .status.code = 2 Then
+            Me.txtFilePath = strPath
+        End If
+    End With
 End Sub
 
 Private Sub Form_Load()
